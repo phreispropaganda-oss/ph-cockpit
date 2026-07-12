@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cockpit · Aprovação de Posts</title>
+<style>
+  :root{
+    --bg:#0d131e; --surface:#161f2d; --surface2:#1b2536; --line:#263247;
+    --ink:#e7ecf3; --mid:#94a0b1; --amber:#e8a13a; --amber2:#f0b863;
+    --li:#3a8dde; --ig:#e26aa8; --green:#4fb488; --red:#e0645a; --grey:#5b6675;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+  .wrap{max-width:680px;margin:0 auto;padding:16px 14px 60px}
+  header{position:sticky;top:0;z-index:5;background:rgba(13,19,30,.92);
+    backdrop-filter:blur(8px);padding:14px 14px 10px;border-bottom:1px solid var(--line);margin:-16px -14px 14px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand b{font-size:17px;letter-spacing:-.01em}
+  .brand .tick{width:20px;height:20px;border-radius:6px;background:var(--amber);flex:0 0 auto}
+  .brand .sub{color:var(--mid);font-size:12px;margin-left:auto}
+  .tabs{display:flex;gap:8px;margin-top:12px;overflow-x:auto}
+  .tab{white-space:nowrap;font-size:13px;padding:7px 13px;border:1px solid var(--line);
+    background:var(--surface);color:var(--mid);border-radius:999px;cursor:pointer}
+  .tab.on{background:var(--amber);color:#1a1206;border-color:var(--amber);font-weight:600}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    overflow:hidden;margin-bottom:14px}
+  .card .top{display:flex;align-items:center;gap:8px;padding:12px 14px 0}
+  .pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;letter-spacing:.02em}
+  .pf-linkedin{background:rgba(58,141,222,.16);color:#7fb6ee}
+  .pf-instagram{background:rgba(226,106,168,.16);color:#f0a0c8}
+  .when{color:var(--mid);font-size:12px}
+  .st{margin-left:auto;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em}
+  .st-pending{background:rgba(232,161,58,.16);color:var(--amber2)}
+  .st-approved{background:rgba(79,180,136,.16);color:var(--green)}
+  .st-rejected{background:rgba(224,100,90,.16);color:var(--red)}
+  .st-published{background:rgba(58,141,222,.16);color:#7fb6ee}
+  .st-waiting_asset{background:rgba(91,102,117,.2);color:#9aa6b5}
+  .st-draft{background:rgba(91,102,117,.2);color:#9aa6b5}
+  .card img.prev{width:100%;display:block;margin-top:12px;background:var(--surface2);
+    max-height:360px;object-fit:cover}
+  .noimg{margin:12px 14px 0;padding:14px;border:1px dashed var(--line);border-radius:10px;
+    color:var(--mid);font-size:12.5px;text-align:center}
+  .body{padding:12px 14px}
+  .title{font-size:13px;color:var(--amber2);font-weight:600;margin-bottom:6px}
+  textarea{width:100%;background:var(--surface2);color:var(--ink);border:1px solid var(--line);
+    border-radius:10px;padding:11px;font:inherit;font-size:14px;line-height:1.55;resize:vertical;min-height:120px}
+  textarea[readonly]{opacity:.96;cursor:default}
+  .tags{color:#8fb2e0;font-size:12.5px;margin-top:8px;word-break:break-word}
+  .note{color:var(--mid);font-size:12px;margin-top:8px;font-style:italic}
+  .acts{display:flex;flex-wrap:wrap;gap:8px;padding:0 14px 14px}
+  button.act{flex:1;min-width:88px;border:none;border-radius:10px;padding:11px 10px;
+    font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+  .b-ok{background:var(--green);color:#08251a}
+  .b-no{background:rgba(224,100,90,.15);color:var(--red)}
+  .b-ed{background:var(--surface2);color:var(--ink);border:1px solid var(--line)!important}
+  .b-cp{background:rgba(232,161,58,.15);color:var(--amber2)}
+  .b-save{background:var(--amber);color:#1a1206}
+  .empty{text-align:center;color:var(--mid);padding:50px 20px}
+  .gate{max-width:340px;margin:16vh auto 0;padding:26px;background:var(--surface);
+    border:1px solid var(--line);border-radius:16px;text-align:center}
+  .gate input{width:100%;margin:14px 0;padding:13px;text-align:center;font-size:20px;letter-spacing:4px;
+    background:var(--surface2);border:1px solid var(--line);border-radius:10px;color:var(--ink)}
+  .gate button{width:100%;padding:13px;border:none;border-radius:10px;background:var(--amber);
+    color:#1a1206;font-weight:700;font-size:15px;cursor:pointer}
+  .gate .err{color:var(--red);font-size:13px;min-height:18px;margin-top:8px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--amber);
+    color:#1a1206;font-weight:600;padding:11px 18px;border-radius:999px;font-size:13px;
+    opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<script>
+const FN="https://vrwyetxaqtbehbjodnrp.supabase.co/functions/v1/cockpit-api";
+let PASS=localStorage.getItem("cockpit_pass")||"";
+let POSTS=[], FILTER="pending";
+
+const $=(s,r=document)=>r.querySelector(s);
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800)}
+async function api(action,extra={}){
+  const r=await fetch(FN,{method:"POST",headers:{"content-type":"application/json"},
+    body:JSON.stringify({action,pass:PASS,...extra})});
+  if(r.status===401)throw new Error("401");
+  return r.json();
+}
+function fmt(iso){
+  if(!iso)return "sem data";
+  const d=new Date(iso);
+  return d.toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+}
+const STLABEL={pending:"pendente",approved:"aprovado",rejected:"reprovado",published:"publicado",waiting_asset:"aguardando print",draft:"rascunho"};
+
+function gate(err=""){
+  $("#app").innerHTML=`<div class="gate">
+    <div style="width:34px;height:34px;border-radius:9px;background:var(--amber);margin:0 auto 6px"></div>
+    <h2 style="margin:6px 0 0;font-size:18px">Cockpit</h2>
+    <p style="color:var(--mid);font-size:13px;margin:6px 0 0">Aprovação de posts</p>
+    <input id="pin" inputmode="text" autocomplete="off" placeholder="código" value="">
+    <button onclick="tryPass()">Entrar</button>
+    <div class="err">${err}</div></div>`;
+  const i=$("#pin"); if(i){i.focus();i.onkeydown=e=>{if(e.key==="Enter")tryPass()}}
+}
+async function tryPass(){
+  PASS=$("#pin").value.trim();
+  try{await api("list");localStorage.setItem("cockpit_pass",PASS);load()}
+  catch(e){gate("Código inválido")}
+}
+function shell(){
+  $("#app").innerHTML=`<div class="wrap">
+    <header>
+      <div class="brand"><span class="tick"></span><b>Cockpit</b>
+        <span class="sub">aprovação de posts</span></div>
+      <div class="tabs" id="tabs"></div>
+    </header>
+    <div id="list"></div>
+  </div>`;
+}
+function renderTabs(){
+  const counts={pending:0,approved:0,all:POSTS.length,waiting_asset:0};
+  POSTS.forEach(p=>{if(p.status==="pending")counts.pending++;if(p.status==="approved")counts.approved++;if(p.status==="waiting_asset")counts.waiting_asset++});
+  const defs=[["pending","Pendentes ("+counts.pending+")"],["approved","Aprovados ("+counts.approved+")"],["waiting_asset","Aguardando print ("+counts.waiting_asset+")"],["all","Todos ("+counts.all+")"]];
+  $("#tabs").innerHTML=defs.map(([k,l])=>`<div class="tab ${FILTER===k?'on':''}" onclick="setFilter('${k}')">${l}</div>`).join("");
+}
+function setFilter(f){FILTER=f;renderTabs();renderList()}
+function renderList(){
+  const rows=POSTS.filter(p=>FILTER==="all"?true:p.status===FILTER);
+  if(!rows.length){$("#list").innerHTML=`<div class="empty">Nada aqui 🙌</div>`;return}
+  $("#list").innerHTML=rows.map(card).join("");
+}
+function esc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function card(p){
+  const img=p.preview_url
+    ? `<img class="prev" src="${p.preview_url}" alt="">`
+    : `<div class="noimg">sem imagem · <b>${esc(p.image_ref)||"a definir"}</b></div>`;
+  const blur=p.image_status==="needs_blur"?`<div class="note">⚠️ borrar logo da empresa antes de publicar</div>`:"";
+  const note=p.review_notes?`<div class="note">📝 ${esc(p.review_notes)}</div>`:"";
+  const tags=p.hashtags?`<div class="tags">${esc(p.hashtags)}</div>`:"";
+  return `<div class="card" id="c-${p.id}">
+    <div class="top">
+      <span class="pill pf-${p.platform}">${p.platform==="linkedin"?"LinkedIn":"Instagram"}</span>
+      <span class="when">${fmt(p.scheduled_for)}</span>
+      <span class="st st-${p.status}">${STLABEL[p.status]||p.status}</span>
+    </div>
+    ${img}
+    <div class="body">
+      <div class="title">${esc(p.title)}</div>
+      <textarea id="t-${p.id}" readonly>${esc(p.body)}</textarea>
+      ${tags}${blur}${note}
+    </div>
+    <div class="acts" id="a-${p.id}">
+      <button class="act b-cp" onclick="copyPost('${p.id}')">Copiar</button>
+      <button class="act b-ed" onclick="edit('${p.id}')">Editar</button>
+      <button class="act b-no" onclick="setStatus('${p.id}','rejected')">Reprovar</button>
+      <button class="act b-ok" onclick="setStatus('${p.id}','approved')">Aprovar</button>
+    </div>`;
+}
+function copyPost(id){
+  const p=POSTS.find(x=>x.id===id);
+  const txt=p.body+(p.hashtags?"\n\n"+p.hashtags:"");
+  navigator.clipboard.writeText(txt).then(()=>toast("Texto copiado ✓"),()=>toast("Não copiou"));
+}
+function edit(id){
+  const ta=$("#t-"+id);ta.removeAttribute("readonly");ta.focus();
+  $("#a-"+id).innerHTML=`<button class="act b-ed" onclick="load()">Cancelar</button>
+    <button class="act b-save" onclick="saveBody('${id}')">Salvar texto</button>`;
+}
+async function saveBody(id){
+  const body=$("#t-"+id).value;
+  try{await api("update",{id,body});toast("Texto salvo ✓");load()}catch(e){toast("Erro ao salvar")}
+}
+async function setStatus(id,status){
+  try{await api("update",{id,status});toast(status==="approved"?"Aprovado ✓":"Reprovado");
+    const p=POSTS.find(x=>x.id===id);if(p)p.status=status;renderTabs();renderList()}
+  catch(e){toast("Erro")}
+}
+async function load(){
+  try{const d=await api("list");POSTS=d.posts||[];shell();renderTabs();renderList()}
+  catch(e){gate()}
+}
+if(PASS){load()}else{gate()}
+</script>
+</body>
+</html>
