@@ -44,19 +44,19 @@
     color:var(--mid);font-size:12.5px;text-align:center}
   .body{padding:12px 14px}
   .title{font-size:13px;color:var(--amber2);font-weight:600;margin-bottom:6px}
+  .hint{font-size:11px;color:var(--grey);margin-bottom:6px}
   textarea{width:100%;background:var(--surface2);color:var(--ink);border:1px solid var(--line);
     border-radius:10px;padding:11px;font:inherit;font-size:14px;line-height:1.55;resize:vertical;min-height:120px}
-  textarea[readonly]{opacity:.96;cursor:default}
+  textarea:focus{outline:none;border-color:var(--amber)}
   .tags{color:#8fb2e0;font-size:12.5px;margin-top:8px;word-break:break-word}
   .note{color:var(--mid);font-size:12px;margin-top:8px;font-style:italic}
   .acts{display:flex;flex-wrap:wrap;gap:8px;padding:0 14px 14px}
-  button.act{flex:1;min-width:88px;border:none;border-radius:10px;padding:11px 10px;
+  button.act{flex:1;min-width:80px;border:none;border-radius:10px;padding:11px 10px;
     font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
   .b-ok{background:var(--green);color:#08251a}
   .b-no{background:rgba(224,100,90,.15);color:var(--red)}
-  .b-ed{background:var(--surface2);color:var(--ink);border:1px solid var(--line)!important}
   .b-cp{background:rgba(232,161,58,.15);color:var(--amber2)}
-  .b-save{background:var(--amber);color:#1a1206}
+  .b-save{background:var(--surface2);color:var(--ink);border:1px solid var(--line)!important}
   .empty{text-align:center;color:var(--mid);padding:50px 20px}
   .gate{max-width:340px;margin:16vh auto 0;padding:26px;background:var(--surface);
     border:1px solid var(--line);border-radius:16px;text-align:center}
@@ -148,33 +148,33 @@ function card(p){
     ${img}
     <div class="body">
       <div class="title">${esc(p.title)}</div>
-      <textarea id="t-${p.id}" readonly>${esc(p.body)}</textarea>
+      <div class="hint">toque no texto pra editar</div>
+      <textarea id="t-${p.id}">${esc(p.body)}</textarea>
       ${tags}${blur}${note}
     </div>
     <div class="acts" id="a-${p.id}">
       <button class="act b-cp" onclick="copyPost('${p.id}')">Copiar</button>
-      <button class="act b-ed" onclick="edit('${p.id}')">Editar</button>
+      <button class="act b-save" onclick="saveBody('${p.id}')">Salvar</button>
       <button class="act b-no" onclick="setStatus('${p.id}','rejected')">Reprovar</button>
       <button class="act b-ok" onclick="setStatus('${p.id}','approved')">Aprovar</button>
     </div>`;
 }
 function copyPost(id){
   const p=POSTS.find(x=>x.id===id);
-  const txt=p.body+(p.hashtags?"\n\n"+p.hashtags:"");
+  const ta=$("#t-"+id);
+  const body=ta?ta.value:p.body;
+  const txt=body+(p.hashtags?"\n\n"+p.hashtags:"");
   navigator.clipboard.writeText(txt).then(()=>toast("Texto copiado ✓"),()=>toast("Não copiou"));
-}
-function edit(id){
-  const ta=$("#t-"+id);ta.removeAttribute("readonly");ta.focus();
-  $("#a-"+id).innerHTML=`<button class="act b-ed" onclick="load()">Cancelar</button>
-    <button class="act b-save" onclick="saveBody('${id}')">Salvar texto</button>`;
 }
 async function saveBody(id){
   const body=$("#t-"+id).value;
-  try{await api("update",{id,body});toast("Texto salvo ✓");load()}catch(e){toast("Erro ao salvar")}
+  try{await api("update",{id,body});const p=POSTS.find(x=>x.id===id);if(p)p.body=body;toast("Texto salvo ✓")}
+  catch(e){toast("Erro ao salvar")}
 }
 async function setStatus(id,status){
-  try{await api("update",{id,status});toast(status==="approved"?"Aprovado ✓":"Reprovado");
-    const p=POSTS.find(x=>x.id===id);if(p)p.status=status;renderTabs();renderList()}
+  const ta=$("#t-"+id);const extra={id,status};if(ta)extra.body=ta.value;
+  try{await api("update",extra);toast(status==="approved"?"Aprovado ✓":"Reprovado");
+    const p=POSTS.find(x=>x.id===id);if(p){p.status=status;if(ta)p.body=ta.value}renderTabs();renderList()}
   catch(e){toast("Erro")}
 }
 async function load(){
