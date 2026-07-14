@@ -170,29 +170,39 @@ function copyPost(id){
   const txt=body+(p.hashtags?"\n\n"+p.hashtags:"");
   navigator.clipboard.writeText(txt).then(()=>toast("Texto copiado ✓"),()=>toast("Não copiou"));
 }
+function baixarImagens(urls){
+  urls.forEach((u,i)=>{const a=document.createElement("a");a.href=u;a.download=(u.split("/").pop()||("foto"+(i+1)+".jpg"));document.body.appendChild(a);a.click();a.remove()});
+}
 async function publish(id){
   const p=POSTS.find(x=>x.id===id);
   const ta=$("#t-"+id);
   const caption=(ta?ta.value:p.body)+(p.hashtags?"\n\n"+p.hashtags:"");
   try{await navigator.clipboard.writeText(caption)}catch(_){}
   const urls=mediaOf(p);
-  toast(urls.length?"Preparando imagens…":"Legenda copiada");
+  // post só-texto: compartilha o texto direto
+  if(!urls.length){
+    if(navigator.share){try{await navigator.share({text:caption});toast("Aberto no compartilhar ✓")}catch(_){}}
+    else toast("Legenda copiada ✓");
+    return;
+  }
+  toast("Preparando imagens…");
   const files=[];
   for(const u of urls){
-    try{const r=await fetch(u);const b=await r.blob();files.push(new File([b],(u.split("/").pop()||"img.jpg"),{type:b.type||"image/jpeg"}))}catch(_){}
+    try{const r=await fetch(u,{mode:"cors"});const b=await r.blob();files.push(new File([b],(u.split("/").pop()||"img.jpg"),{type:b.type||"image/jpeg"}))}catch(_){}
   }
-  let shareFiles=files;
+  // compartilha SÓ as imagens (sem texto, senão o app descarta as fotos). Legenda vai no clipboard.
   if(files.length&&navigator.canShare){
-    if(!navigator.canShare({files})) shareFiles=(files.length&&navigator.canShare({files:[files[0]]}))?[files[0]]:[];
+    let f=null;
+    if(navigator.canShare({files})) f=files;
+    else if(navigator.canShare({files:[files[0]]})) f=[files[0]];
+    if(f){
+      try{await navigator.share({files:f});toast(f.length<files.length?"Foto anexada ✓ (app pegou 1) — cole a legenda":"Imagens anexadas ✓ — é só colar a legenda");return;}
+      catch(e){if(e&&e.name==="AbortError")return;}
+    }
   }
-  const data=shareFiles.length?{files:shareFiles,text:caption}:{text:caption};
-  if(navigator.share){
-    try{await navigator.share(data);toast("Aberto no compartilhar · legenda copiada ✓")}
-    catch(e){/* cancelado */}
-  }else{
-    urls.forEach(u=>{const a=document.createElement("a");a.href=u;a.target="_blank";a.rel="noopener";a.click()});
-    toast("Legenda copiada + imagens abertas (poste manual)");
-  }
+  // fallback: navegador não anexa imagem no compartilhar → baixa as fotos (legenda já copiada)
+  baixarImagens(urls);
+  toast("Baixei as fotos pro seu celular + copiei a legenda. Anexe do rolo e cole o texto.");
 }
 async function saveBody(id){
   const body=$("#t-"+id).value;
