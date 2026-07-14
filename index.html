@@ -185,24 +185,25 @@ async function publish(id){
     else toast("Legenda copiada ✓");
     return;
   }
-  toast("Preparando imagens…");
+  toast("Preparando…");
   const files=[];
   for(const u of urls){
     try{const r=await fetch(u,{mode:"cors"});const b=await r.blob();files.push(new File([b],(u.split("/").pop()||"img.jpg"),{type:b.type||"image/jpeg"}))}catch(_){}
   }
-  // compartilha SÓ as imagens (sem texto, senão o app descarta as fotos). Legenda vai no clipboard.
-  if(files.length&&navigator.canShare){
-    let f=null;
-    if(navigator.canShare({files})) f=files;
-    else if(navigator.canShare({files:[files[0]]})) f=[files[0]];
-    if(f){
-      try{await navigator.share({files:f});toast(f.length<files.length?"Foto anexada ✓ (app pegou 1) — cole a legenda":"Imagens anexadas ✓ — é só colar a legenda");return;}
-      catch(e){if(e&&e.name==="AbortError")return;}
-    }
+  const canFiles=files.length&&navigator.canShare&&navigator.canShare({files});
+  // 1 FOTO: vai direto pro app (LinkedIn/IG aparece). Legenda no clipboard → colar.
+  if(files.length===1&&canFiles){
+    try{await navigator.share({files});toast("Escolha LinkedIn/Instagram e cole a legenda (já copiada) ✓");return;}
+    catch(e){if(e&&e.name==="AbortError")return;}
   }
-  // fallback: navegador não anexa imagem no compartilhar → baixa as fotos (legenda já copiada)
+  // CARROSSEL: LinkedIn/IG não recebem várias fotos de uma vez pelo atalho do iPhone.
+  if(files.length>1&&canFiles){
+    try{await navigator.share({files});toast("Carrossel: toque em 'Salvar em Fotos'. Depois: LinkedIn → novo post → anexe as fotos → cole a legenda.");return;}
+    catch(e){if(e&&e.name==="AbortError")return;}
+  }
+  // fallback (navegador sem compartilhar de arquivo): baixa as fotos
   baixarImagens(urls);
-  toast("Baixei as fotos pro seu celular + copiei a legenda. Anexe do rolo e cole o texto.");
+  toast("Baixei as fotos + copiei a legenda. Anexe do rolo e cole o texto.");
 }
 async function saveBody(id){
   const body=$("#t-"+id).value;
