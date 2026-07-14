@@ -54,6 +54,9 @@
   button.act{flex:1;min-width:80px;border:none;border-radius:10px;padding:11px 10px;
     font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
   button.b-pub{flex:1 1 100%;background:var(--amber);color:#1a1206;font-size:15px;padding:13px}
+  button.b-li{flex:1 1 100%;background:var(--li);color:#04121f;font-size:15px;padding:13px;font-weight:700}
+  button.b-li:disabled{opacity:.55}
+  .b-share{background:var(--surface2);color:var(--amber2);border:1px solid var(--line)!important}
   .b-ok{background:var(--green);color:#08251a}
   .b-no{background:rgba(224,100,90,.15);color:var(--red)}
   .b-cp{background:rgba(232,161,58,.15);color:var(--amber2)}
@@ -77,6 +80,7 @@
 <div class="toast" id="toast"></div>
 <script>
 const FN="https://vrwyetxaqtbehbjodnrp.supabase.co/functions/v1/cockpit-api";
+const LIFN="https://vrwyetxaqtbehbjodnrp.supabase.co/functions/v1/publish-linkedin";
 let PASS=localStorage.getItem("cockpit_pass")||"";
 let POSTS=[], FILTER="pending";
 
@@ -142,7 +146,13 @@ function card(p){
   const blur=p.image_status==="needs_blur"?`<div class="note">⚠️ borrar logo da empresa antes de publicar</div>`:"";
   const note=p.review_notes?`<div class="note">📝 ${esc(p.review_notes)}</div>`:"";
   const tags=p.hashtags?`<div class="tags">${esc(p.hashtags)}</div>`:"";
-  const pubLabel=media.length>1?`📤 Publicar · ${media.length} fotos`:media.length===1?"📤 Publicar · 1 foto":"📤 Publicar · só texto";
+  const isLI=p.platform==="linkedin";
+  const fotos=media.length>1?`${media.length} fotos`:media.length===1?"1 foto":"só texto";
+  const pubLabel=`📤 Publicar · ${fotos}`;
+  const autoBtn=isLI?`<button class="act b-li" onclick="publishLinkedIn('${p.id}')">🚀 Publicar no LinkedIn · ${fotos}</button>`:"";
+  const shareBtn=isLI
+    ?`<button class="act b-share" onclick="publish('${p.id}')">📤 Compartilhar</button>`
+    :`<button class="act b-pub" onclick="publish('${p.id}')">${pubLabel}</button>`;
   return `<div class="card" id="c-${p.id}">
     <div class="top">
       <span class="pill pf-${p.platform}">${p.platform==="linkedin"?"LinkedIn":"Instagram"}</span>
@@ -157,7 +167,8 @@ function card(p){
       ${tags}${blur}${note}
     </div>
     <div class="acts" id="a-${p.id}">
-      <button class="act b-pub" onclick="publish('${p.id}')">${pubLabel}</button>
+      ${autoBtn}
+      ${shareBtn}
       <button class="act b-cp" onclick="copyPost('${p.id}')">Copiar</button>
       <button class="act b-save" onclick="saveBody('${p.id}')">Salvar</button>
       <button class="act b-no" onclick="setStatus('${p.id}','rejected')">Reprovar</button>
@@ -204,6 +215,35 @@ async function publish(id){
   // fallback (navegador sem compartilhar de arquivo): baixa as fotos
   baixarImagens(urls);
   toast("Baixei as fotos + copiei a legenda. Anexe do rolo e cole o texto.");
+}
+async function publishLinkedIn(id){
+  const p=POSTS.find(x=>x.id===id);if(!p)return;
+  const ta=$("#t-"+id);
+  // salva edições do texto antes de publicar
+  if(ta&&ta.value!==p.body){try{await api("update",{id,body:ta.value});p.body=ta.value}catch(_){}}
+  const n=mediaOf(p).length;
+  const resumo=n?`${n} foto${n>1?"s":""} + legenda`:"só o texto";
+  if(!confirm(`Publicar AGORA no seu LinkedIn?\n\n${resumo}.\nVai direto pro feed público.`))return;
+  const btn=$("#a-"+id+" .b-li");if(btn){btn.disabled=true;btn.textContent="Publicando…"}
+  toast("Publicando no LinkedIn…");
+  try{
+    const r=await fetch(LIFN,{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({pass:PASS,id})});
+    const d=await r.json();
+    if(d&&d.ok){
+      toast("✅ Publicado no LinkedIn!");
+      p.status="published";renderTabs();renderList();
+      if(d.url&&confirm("Publicado! 🎉\n\nAbrir o post no LinkedIn?"))window.open(d.url,"_blank");
+    }else{
+      if(btn){btn.disabled=false;btn.textContent="🚀 Publicar no LinkedIn · "+(n>1?n+" fotos":n===1?"1 foto":"só texto")}
+      const msg=(d&&(d.error||JSON.stringify(d)))||"falhou";
+      toast("Não publicou ✕");
+      alert("Não publicou no LinkedIn.\n\n"+(d&&d.step?("Etapa: "+d.step+"\n"):"")+msg);
+    }
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent="🚀 Publicar no LinkedIn"}
+    toast("Erro de rede ✕");alert("Erro de conexão: "+e);
+  }
 }
 async function saveBody(id){
   const body=$("#t-"+id).value;
