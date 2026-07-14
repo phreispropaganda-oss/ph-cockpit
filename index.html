@@ -53,6 +53,7 @@
   .acts{display:flex;flex-wrap:wrap;gap:8px;padding:0 14px 14px}
   button.act{flex:1;min-width:80px;border:none;border-radius:10px;padding:11px 10px;
     font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+  button.b-pub{flex:1 1 100%;background:var(--amber);color:#1a1206;font-size:15px;padding:13px}
   .b-ok{background:var(--green);color:#08251a}
   .b-no{background:rgba(224,100,90,.15);color:var(--red)}
   .b-cp{background:rgba(232,161,58,.15);color:var(--amber2)}
@@ -67,7 +68,7 @@
   .gate .err{color:var(--red);font-size:13px;min-height:18px;margin-top:8px}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--amber);
     color:#1a1206;font-weight:600;padding:11px 18px;border-radius:999px;font-size:13px;
-    opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+    opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;max-width:88%;text-align:center}
   .toast.show{opacity:1}
 </style>
 </head>
@@ -80,7 +81,7 @@ let PASS=localStorage.getItem("cockpit_pass")||"";
 let POSTS=[], FILTER="pending";
 
 const $=(s,r=document)=>r.querySelector(s);
-function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800)}
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2600)}
 async function api(action,extra={}){
   const r=await fetch(FN,{method:"POST",headers:{"content-type":"application/json"},
     body:JSON.stringify({action,pass:PASS,...extra})});
@@ -92,6 +93,7 @@ function fmt(iso){
   const d=new Date(iso);
   return d.toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
 }
+function mediaOf(p){try{return JSON.parse(p.media_urls||"[]")||[]}catch(_){return []}}
 const STLABEL={pending:"pendente",approved:"aprovado",rejected:"reprovado",published:"publicado",waiting_asset:"aguardando print",draft:"rascunho"};
 
 function gate(err=""){
@@ -133,12 +135,14 @@ function renderList(){
 }
 function esc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
 function card(p){
+  const media=mediaOf(p);
   const img=p.preview_url
     ? `<img class="prev" src="${p.preview_url}" alt="">`
     : `<div class="noimg">sem imagem · <b>${esc(p.image_ref)||"a definir"}</b></div>`;
   const blur=p.image_status==="needs_blur"?`<div class="note">⚠️ borrar logo da empresa antes de publicar</div>`:"";
   const note=p.review_notes?`<div class="note">📝 ${esc(p.review_notes)}</div>`:"";
   const tags=p.hashtags?`<div class="tags">${esc(p.hashtags)}</div>`:"";
+  const pubLabel=media.length>1?`📤 Publicar · ${media.length} fotos`:media.length===1?"📤 Publicar · 1 foto":"📤 Publicar · só texto";
   return `<div class="card" id="c-${p.id}">
     <div class="top">
       <span class="pill pf-${p.platform}">${p.platform==="linkedin"?"LinkedIn":"Instagram"}</span>
@@ -153,6 +157,7 @@ function card(p){
       ${tags}${blur}${note}
     </div>
     <div class="acts" id="a-${p.id}">
+      <button class="act b-pub" onclick="publish('${p.id}')">${pubLabel}</button>
       <button class="act b-cp" onclick="copyPost('${p.id}')">Copiar</button>
       <button class="act b-save" onclick="saveBody('${p.id}')">Salvar</button>
       <button class="act b-no" onclick="setStatus('${p.id}','rejected')">Reprovar</button>
@@ -160,11 +165,34 @@ function card(p){
     </div>`;
 }
 function copyPost(id){
-  const p=POSTS.find(x=>x.id===id);
-  const ta=$("#t-"+id);
+  const p=POSTS.find(x=>x.id===id);const ta=$("#t-"+id);
   const body=ta?ta.value:p.body;
   const txt=body+(p.hashtags?"\n\n"+p.hashtags:"");
   navigator.clipboard.writeText(txt).then(()=>toast("Texto copiado ✓"),()=>toast("Não copiou"));
+}
+async function publish(id){
+  const p=POSTS.find(x=>x.id===id);
+  const ta=$("#t-"+id);
+  const caption=(ta?ta.value:p.body)+(p.hashtags?"\n\n"+p.hashtags:"");
+  try{await navigator.clipboard.writeText(caption)}catch(_){}
+  const urls=mediaOf(p);
+  toast(urls.length?"Preparando imagens…":"Legenda copiada");
+  const files=[];
+  for(const u of urls){
+    try{const r=await fetch(u);const b=await r.blob();files.push(new File([b],(u.split("/").pop()||"img.jpg"),{type:b.type||"image/jpeg"}))}catch(_){}
+  }
+  let shareFiles=files;
+  if(files.length&&navigator.canShare){
+    if(!navigator.canShare({files})) shareFiles=(files.length&&navigator.canShare({files:[files[0]]}))?[files[0]]:[];
+  }
+  const data=shareFiles.length?{files:shareFiles,text:caption}:{text:caption};
+  if(navigator.share){
+    try{await navigator.share(data);toast("Aberto no compartilhar · legenda copiada ✓")}
+    catch(e){/* cancelado */}
+  }else{
+    urls.forEach(u=>{const a=document.createElement("a");a.href=u;a.target="_blank";a.rel="noopener";a.click()});
+    toast("Legenda copiada + imagens abertas (poste manual)");
+  }
 }
 async function saveBody(id){
   const body=$("#t-"+id).value;
