@@ -40,6 +40,8 @@
   .st-draft{background:rgba(91,102,117,.2);color:#9aa6b5}
   .card img.prev{width:100%;display:block;margin-top:12px;background:var(--surface2);
     max-height:360px;object-fit:cover}
+  .card video.prev{width:100%;display:block;margin-top:12px;background:#000;
+    max-height:420px;object-fit:contain}
   .noimg{margin:12px 14px 0;padding:14px;border:1px dashed var(--line);border-radius:10px;
     color:var(--mid);font-size:12.5px;text-align:center}
   .body{padding:12px 14px}
@@ -98,6 +100,7 @@ function fmt(iso){
   return d.toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
 }
 function mediaOf(p){try{return JSON.parse(p.media_urls||"[]")||[]}catch(_){return []}}
+function isVid(u){return /\.(mp4|mov|webm|m4v)(\?|#|$)/i.test(u||"")}
 const STLABEL={pending:"pendente",approved:"aprovado",rejected:"reprovado",published:"publicado",waiting_asset:"aguardando print",draft:"rascunho"};
 
 function gate(err=""){
@@ -140,14 +143,19 @@ function renderList(){
 function esc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
 function card(p){
   const media=mediaOf(p);
-  const img=p.preview_url
-    ? `<img class="prev" src="${p.preview_url}" alt="">`
-    : `<div class="noimg">sem imagem · <b>${esc(p.image_ref)||"a definir"}</b></div>`;
+  const vidSrc=isVid(p.preview_url)?p.preview_url:media.find(isVid);
+  const poster=(p.preview_url&&!isVid(p.preview_url))?p.preview_url:"";
+  const img=vidSrc
+    ? `<video class="prev" src="${vidSrc}" controls playsinline preload="metadata"${poster?` poster="${poster}"`:""}></video>`
+    : p.preview_url
+      ? `<img class="prev" src="${p.preview_url}" alt="">`
+      : `<div class="noimg">sem imagem · <b>${esc(p.image_ref)||"a definir"}</b></div>`;
   const blur=p.image_status==="needs_blur"?`<div class="note">⚠️ borrar logo da empresa antes de publicar</div>`:"";
   const note=p.review_notes?`<div class="note">📝 ${esc(p.review_notes)}</div>`:"";
   const tags=p.hashtags?`<div class="tags">${esc(p.hashtags)}</div>`:"";
   const isLI=p.platform==="linkedin";
-  const fotos=media.length>1?`${media.length} fotos`:media.length===1?"1 foto":"só texto";
+  const nVid=media.filter(isVid).length;
+  const fotos=nVid?`${nVid>1?nVid+" vídeos":"vídeo"}`:media.length>1?`${media.length} fotos`:media.length===1?"1 foto":"só texto";
   const pubLabel=`📤 Publicar · ${fotos}`;
   const autoBtn=isLI?`<button class="act b-li" onclick="publishLinkedIn('${p.id}')">🚀 Publicar no LinkedIn · ${fotos}</button>`:"";
   const shareBtn=isLI
