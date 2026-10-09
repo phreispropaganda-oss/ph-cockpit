@@ -142,9 +142,13 @@ function desenhar() {
 
 function cartao(v) {
   const extra = v.extra_vendedor_pct ? `, sendo ${v.extra_vendedor_pct}% da loja` : "";  // a taxa já inclui a Comissão Extra
+  const itens = (v.links && v.links.itens) || [];
+  const voz = /-(sulafat|kore|leda|aoede)$/.test(v.slug) ? "voz feminina" : /-(puck|charon|orus|alnilam|fenrir|achird)$/.test(v.slug) ? "voz masculina" : "";
   const chips = [
     `<span class="st st-${v.status}">${esc(v.status)}</span>`,
-    v.comissao_rs != null ? `<span class="chip com">${brl(v.comissao_rs)} por venda · ${v.taxa_pct}%${extra}</span>` : "",
+    voz ? `<span class="chip">${voz}</span>` : "",
+    itens.length ? `<span class="chip com">${itens.length} produtos · média ${brl(v.comissao_rs)} por venda</span>`
+      : v.comissao_rs != null ? `<span class="chip com">${brl(v.comissao_rs)} por venda · ${v.taxa_pct}%${extra}</span>` : "",
     v.vendas != null ? `<span class="chip">${Number(v.vendas).toLocaleString("pt-BR")} vendas</span>` : "",
     v.nota != null ? `<span class="chip">nota ${String(v.nota).replace(".", ",")}</span>` : "",
   ].join("");
@@ -162,8 +166,10 @@ function cartao(v) {
       <div class="passo"><h4>2 · Legenda (copia e cola no app)</h4>
         <div class="acts"><button class="act b-sec" data-copiar="shopee_video">Shopee</button>
           <button class="act b-sec" data-copiar="tiktok">TikTok</button><button class="act b-sec" data-copiar="instagram">Instagram</button></div></div>
-      <div class="passo"><h4>3 · Shopee Vídeo: marcar o produto</h4>
-        <div class="acts"><button class="act b-sec" data-a="nome">Copiar nome do produto</button></div></div>
+      <div class="passo"><h4>3 · Shopee Vídeo: marcar ${itens.length ? "os produtos" : "o produto"}</h4>
+        <div class="acts">${itens.length
+          ? itens.map((it, i) => `<button class="act b-sec" data-item="${i}">Copiar: ${esc(it.nome)}</button>`).join("")
+          : `<button class="act b-sec" data-a="nome">Copiar nome do produto</button>`}</div></div>
       <div class="passo"><h4>4 · Já postei em</h4><div class="feito">${feito}</div></div>
       <details><summary>Checklist completo</summary><pre>${esc(v.checklist)}</pre></details>
     </div>`;
@@ -187,6 +193,7 @@ function ligar(v) {
   });
   on("[data-copiar]", b => copiar((v.legendas || {})[b.dataset.copiar] || "", "Legenda copiada"));
   on('[data-a="nome"]', () => copiar(v.produto, "Nome copiado. No app: Adicionar produto > buscar > colar"));
+  on("[data-item]", b => copiar(v.links.itens[+b.dataset.item].nome, "Copiado. No app: Adicionar produto > buscar > colar"));
   on('[data-a="enviar"]', () => enviar(v));
   on("[data-canal]", async b => {
     const ja = b.classList.contains("on");
