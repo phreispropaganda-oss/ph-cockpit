@@ -141,7 +141,7 @@ function desenhar() {
 }
 
 function cartao(v) {
-  const extra = v.extra_vendedor_pct ? ` · +${v.extra_vendedor_pct}% extra` : "";
+  const extra = v.extra_vendedor_pct ? `, sendo ${v.extra_vendedor_pct}% da loja` : "";  // a taxa já inclui a Comissão Extra
   const chips = [
     `<span class="st st-${v.status}">${esc(v.status)}</span>`,
     v.comissao_rs != null ? `<span class="chip com">${brl(v.comissao_rs)} por venda · ${v.taxa_pct}%${extra}</span>` : "",
