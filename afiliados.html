@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cockpit · Afiliados</title>
+<style>
+  /* Mesmo visual do Cockpit de posts; laranja da Shopee só nos passos da Shopee */
+  :root{
+    --bg:#0d131e; --surface:#161f2d; --surface2:#1b2536; --line:#263247;
+    --ink:#e7ecf3; --mid:#94a0b1; --amber:#e8a13a; --amber2:#f0b863;
+    --shopee:#ee6a3c; --tt:#e7ecf3; --ig:#e26aa8; --green:#4fb488; --red:#e0645a; --grey:#5b6675;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+  .wrap{max-width:680px;margin:0 auto;padding:16px 14px calc(60px + env(safe-area-inset-bottom,0px))}
+  header{position:sticky;top:0;z-index:5;background:rgba(13,19,30,.92);
+    backdrop-filter:blur(8px);padding:calc(14px + env(safe-area-inset-top,0px)) 14px 10px;
+    border-bottom:1px solid var(--line);margin:-16px -14px 14px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand b{font-size:17px;letter-spacing:-.01em}
+  .brand .tick{width:20px;height:20px;border-radius:6px;background:var(--shopee);flex:0 0 auto}
+  .brand a{color:var(--mid);font-size:12px;margin-left:auto;text-decoration:none;border:1px solid var(--line);
+    padding:5px 10px;border-radius:999px}
+  .tabs{display:flex;gap:8px;margin-top:12px;overflow-x:auto}
+  .tab{white-space:nowrap;font-size:13px;padding:7px 13px;border:1px solid var(--line);
+    background:var(--surface);color:var(--mid);border-radius:999px;cursor:pointer;font:inherit}
+  .tab.on{background:var(--amber);color:#1a1206;border-color:var(--amber);font-weight:600}
+  .tab .n{opacity:.7;margin-left:4px;font-variant-numeric:tabular-nums}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:16px}
+  .card video{width:100%;display:block;background:#000;max-height:70vh}
+  .body{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+  .nome{font-size:15px;font-weight:650;line-height:1.35}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--surface2);
+    color:var(--mid);font-variant-numeric:tabular-nums}
+  .chip.com{background:rgba(238,106,60,.16);color:#f6a17f}
+  .st{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em}
+  .st-pendente{background:rgba(232,161,58,.16);color:var(--amber2)}
+  .st-aprovado{background:rgba(79,180,136,.16);color:var(--green)}
+  .st-reprovado{background:rgba(224,100,90,.16);color:var(--red)}
+  .st-postado{background:rgba(58,141,222,.16);color:#7fb6ee}
+  .acts{display:flex;flex-wrap:wrap;gap:8px}
+  button.act{flex:1;min-width:96px;border:none;border-radius:10px;padding:12px 10px;
+    font:inherit;font-size:14px;font-weight:650;cursor:pointer}
+  button.act:disabled{opacity:.5}
+  .b-ok{background:var(--green);color:#08251a}
+  .b-no{background:var(--surface2);color:var(--red);border:1px solid var(--line)!important}
+  .b-send{flex:1 1 100%!important;background:var(--shopee);color:#1f0b03;font-size:15px;padding:14px}
+  .b-sec{background:var(--surface2);color:var(--ink);border:1px solid var(--line)!important;font-weight:600}
+  .passos{counter-reset:p;display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:12px}
+  .passo{display:flex;flex-direction:column;gap:8px}
+  .passo h4{margin:0;font-size:12px;color:var(--mid);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+  .feito{display:flex;gap:8px;flex-wrap:wrap}
+  .feito button{flex:1;min-width:90px;border-radius:999px;padding:9px 10px;font:inherit;font-size:13px;font-weight:600;
+    background:transparent;color:var(--mid);border:1px dashed var(--line);cursor:pointer}
+  .feito button.on{border-style:solid;color:#08251a;background:var(--green);border-color:var(--green)}
+  textarea{width:100%;background:var(--surface2);color:var(--ink);border:1px solid var(--line);
+    border-radius:10px;padding:10px;font:inherit;font-size:14px;min-height:70px;resize:vertical}
+  details{font-size:12.5px;color:var(--mid)}
+  details pre{white-space:pre-wrap;font:inherit;margin:8px 0 0;color:var(--ink);background:var(--surface2);
+    padding:10px;border-radius:10px;border:1px solid var(--line);overflow-wrap:anywhere}
+  .nota{font-size:12.5px;color:var(--red)}
+  .vazio,.login{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:22px 16px;
+    color:var(--mid);text-align:center;font-size:14px}
+  .login input{width:100%;margin:12px 0;padding:12px;border-radius:10px;border:1px solid var(--line);
+    background:var(--surface2);color:var(--ink);font:inherit;font-size:16px;text-align:center}
+  #toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+    background:#f3f5f8;color:#0d131e;padding:10px 16px;border-radius:999px;font-size:13.5px;font-weight:600;
+    max-width:calc(100% - 32px);text-align:center;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+  #toast.on{opacity:1}
+  button:focus-visible,.tab:focus-visible{outline:2px solid var(--amber2);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="tick"></span><b>Afiliados</b><a href="./">Posts</a></div>
+    <div class="tabs" id="tabs"></div>
+  </header>
+  <main id="lista"></main>
+</div>
+<div id="toast"></div>
+<script>
+const FN = "https://vrwyetxaqtbehbjodnrp.supabase.co/functions/v1/afiliados-api";
+let PASS = ""; try { PASS = localStorage.getItem("cockpit_pass") || ""; } catch (_) {}
+let VIDEOS = [], FILTRO = "pendente";
+const BLOBS = {};  // vídeos aprovados pré-carregados: o iPhone só abre o compartilhar se o arquivo já estiver pronto
+const ABAS = [["pendente","Para aprovar"],["aprovado","Aprovados"],["postado","Postados"],["reprovado","Reprovados"]];
+const CANAIS = [["shopee","Shopee"],["tiktok","TikTok"],["instagram","Instagram"]];
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const brl = n => n == null ? "" : Number(n).toLocaleString("pt-BR", {style:"currency", currency:"BRL"});
+function toast(t){ const el = $("#toast"); el.textContent = t; el.classList.add("on"); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("on"), 3200); }
+
+async function api(action, extra = {}) {
+  const r = await fetch(FN, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({action, pass: PASS, ...extra})});
+  const d = await r.json().catch(() => ({}));
+  if (r.status === 401) throw new Error("senha");
+  if (!r.ok || d.error) throw new Error(d.error || ("HTTP " + r.status));
+  return d;
+}
+
+function telaLogin(msg) {
+  $("#tabs").innerHTML = "";
+  $("#lista").innerHTML = `<div class="login"><div>${esc(msg || "Digite a senha do Cockpit")}</div>
+    <input id="pw" type="password" inputmode="text" autocomplete="current-password" aria-label="Senha do Cockpit">
+    <button class="act b-ok" id="entrar" style="width:100%">Entrar</button></div>`;
+  $("#entrar").onclick = async () => {
+    PASS = $("#pw").value.trim();
+    try { await carregar(); try { localStorage.setItem("cockpit_pass", PASS); } catch (_) {} }
+    catch (e) { telaLogin(e.message === "senha" ? "Senha errada. Tente de novo." : "Não carregou: " + e.message); }
+  };
+}
+
+async function carregar() {
+  const d = await api("list");
+  VIDEOS = d.videos || [];
+  desenhar();
+}
+
+function desenhar() {
+  $("#tabs").innerHTML = ABAS.map(([k, t]) => {
+    const n = VIDEOS.filter(v => v.status === k).length;
+    return `<button class="tab ${k === FILTRO ? "on" : ""}" data-f="${k}">${t}<span class="n">${n}</span></button>`;
+  }).join("");
+  document.querySelectorAll(".tab").forEach(b => b.onclick = () => { FILTRO = b.dataset.f; desenhar(); });
+  const itens = VIDEOS.filter(v => v.status === FILTRO);
+  if (!itens.length) {
+    const msg = {pendente:"Nada para aprovar agora. Os vídeos novos aparecem aqui assim que eu mando do Mac.",
+      aprovado:"Nenhum aprovado esperando postagem.", postado:"Nenhum vídeo postado ainda.", reprovado:"Nenhum reprovado."}[FILTRO];
+    $("#lista").innerHTML = `<div class="vazio">${msg}</div>`;
+    return;
+  }
+  $("#lista").innerHTML = itens.map(cartao).join("");
+  itens.forEach(ligar);
+  itens.filter(v => v.status !== "pendente" && v.status !== "reprovado").forEach(preparar);
+}
+
+function cartao(v) {
+  const extra = v.extra_vendedor_pct ? ` · +${v.extra_vendedor_pct}% extra` : "";
+  const chips = [
+    `<span class="st st-${v.status}">${esc(v.status)}</span>`,
+    v.comissao_rs != null ? `<span class="chip com">${brl(v.comissao_rs)} por venda · ${v.taxa_pct}%${extra}</span>` : "",
+    v.vendas != null ? `<span class="chip">${Number(v.vendas).toLocaleString("pt-BR")} vendas</span>` : "",
+    v.nota != null ? `<span class="chip">nota ${String(v.nota).replace(".", ",")}</span>` : "",
+  ].join("");
+  let acoes = "";
+  if (v.status === "pendente" || v.status === "reprovado") {
+    acoes = `<div class="acts"><button class="act b-ok" data-a="aprovar">Aprovar</button>
+      <button class="act b-no" data-a="reprovar">Reprovar</button></div>
+      <div data-motivo hidden><textarea placeholder="O que mudar? (eu refaço e mando de novo)" aria-label="Motivo da reprovação"></textarea>
+      <div class="acts" style="margin-top:8px"><button class="act b-no" data-a="confirmar-reprovar">Enviar reprovação</button></div></div>`;
+  } else {
+    const feito = CANAIS.map(([k, t]) => `<button data-canal="${k}" class="${v.postado && v.postado[k] ? "on" : ""}">${t}${v.postado && v.postado[k] ? " ✓" : ""}</button>`).join("");
+    acoes = `<div class="passos">
+      <div class="passo"><h4>1 · Vídeo para o celular</h4>
+        <div class="acts"><button class="act b-send" data-a="enviar" disabled>Preparando vídeo…</button></div></div>
+      <div class="passo"><h4>2 · Legenda (copia e cola no app)</h4>
+        <div class="acts"><button class="act b-sec" data-copiar="shopee_video">Shopee</button>
+          <button class="act b-sec" data-copiar="tiktok">TikTok</button><button class="act b-sec" data-copiar="instagram">Instagram</button></div></div>
+      <div class="passo"><h4>3 · Shopee Vídeo: marcar o produto</h4>
+        <div class="acts"><button class="act b-sec" data-a="nome">Copiar nome do produto</button></div></div>
+      <div class="passo"><h4>4 · Já postei em</h4><div class="feito">${feito}</div></div>
+      <details><summary>Checklist completo</summary><pre>${esc(v.checklist)}</pre></details>
+    </div>`;
+  }
+  return `<article class="card" id="v${v.id}">
+    <video src="${esc(v.video_url)}" poster="${esc(v.capa_url || "")}" controls playsinline preload="metadata"></video>
+    <div class="body"><div class="nome">${esc(v.produto)}</div><div class="chips">${chips}</div>
+      ${v.nota_revisao ? `<div class="nota">Reprovado: ${esc(v.nota_revisao)}</div>` : ""}
+      ${acoes}</div></article>`;
+}
+
+function ligar(v) {
+  const el = $("#v" + v.id);
+  const on = (sel, fn) => el.querySelectorAll(sel).forEach(b => b.onclick = () => fn(b));
+  on('[data-a="aprovar"]', async b => { b.disabled = true; await mudar(v, {status:"aprovado", nota_revisao:""}, "Aprovado. Agora é só enviar o vídeo."); });
+  on('[data-a="reprovar"]', () => { el.querySelector("[data-motivo]").hidden = false; el.querySelector("textarea").focus(); });
+  on('[data-a="confirmar-reprovar"]', async b => {
+    const motivo = el.querySelector("textarea").value.trim();
+    if (!motivo) { toast("Escreva o que mudar"); return; }
+    b.disabled = true; await mudar(v, {status:"reprovado", nota_revisao:motivo}, "Reprovado. Vou refazer.");
+  });
+  on("[data-copiar]", b => copiar((v.legendas || {})[b.dataset.copiar] || "", "Legenda copiada"));
+  on('[data-a="nome"]', () => copiar(v.produto, "Nome copiado. No app: Adicionar produto > buscar > colar"));
+  on('[data-a="enviar"]', () => enviar(v));
+  on("[data-canal]", async b => {
+    const ja = b.classList.contains("on");
+    await mudar(v, ja ? {canal:b.dataset.canal, desfazer:true} : {canal:b.dataset.canal}, ja ? "Desmarcado" : "Marcado como postado");
+  });
+}
+
+async function mudar(v, campos, msg) {
+  try { const d = await api("update", {id: v.id, ...campos}); Object.assign(v, d.video); toast(msg); desenhar(); }
+  catch (e) { toast(e.message === "senha" ? "Senha expirou: entre de novo" : "Não salvou: " + e.message); }
+}
+
+async function copiar(texto, msg) {
+  try { await navigator.clipboard.writeText(texto); toast(msg); }
+  catch (_) { toast("Não deu para copiar: toque e segure o texto do checklist"); }
+}
+
+async function preparar(v) {
+  const b = $("#v" + v.id)?.querySelector('[data-a="enviar"]');
+  if (!b) return;
+  if (BLOBS[v.id]) { b.disabled = false; b.textContent = "Enviar vídeo"; return; }
+  try {
+    const r = await fetch(v.video_url);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    BLOBS[v.id] = new File([await r.blob()], v.slug + ".mp4", {type: "video/mp4"});
+    const atual = $("#v" + v.id)?.querySelector('[data-a="enviar"]');
+    if (atual) { atual.disabled = false; atual.textContent = "Enviar vídeo"; }
+  } catch (e) { b.textContent = "Abrir vídeo"; b.disabled = false; b.dataset.falhou = "1"; }
+}
+
+async function enviar(v) {
+  const file = BLOBS[v.id];
+  if (file && navigator.canShare && navigator.canShare({files: [file]})) {
+    try { await navigator.share({files: [file]}); toast("Escolha Salvar vídeo (Shopee) ou o app do TikTok/Instagram"); return; }
+    catch (e) { if (e.name === "AbortError") return; }
+  }
+  window.open(v.video_url, "_blank");  // computador ou navegador sem compartilhar arquivo: abre o vídeo para baixar
+  toast("Abri o vídeo. No computador, salve pelo menu do player.");
+}
+
+(async () => {
+  if (!PASS) return telaLogin();
+  try { await carregar(); } catch (e) { telaLogin(e.message === "senha" ? "Digite a senha do Cockpit" : "Não carregou: " + e.message); }
+})();
+</script>
+</body>
+</html>
